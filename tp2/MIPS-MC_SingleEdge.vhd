@@ -394,7 +394,6 @@ use work.p_MIPS_MCS.all;
 entity control_unit is
         port(	ck, rst : in std_logic;
 					inst_branch_in, salta_in : in std_logic;
-					end_mul, end_div : in std_logic;
 					i_address : out std_logic_vector(31 downto 0);
 					instruction : in std_logic_vector(31 downto 0);
 					RESULT_IN : in std_logic_vector(31 downto 0);
@@ -405,8 +404,6 @@ entity control_unit is
 end control_unit;
                    
 architecture control_unit of control_unit is
-   type type_state is (Sfetch, Sreg, Salu, Swbk, Sld, Sst, Ssalta); -- Sidle, 
-   signal PS, NS : type_state;
    signal i : inst_type;
 	signal uins_int : microinstruction;
 	signal dtpc, npc, pc, incpc, IR  : std_logic_vector(31 downto 0);
@@ -479,10 +476,7 @@ begin
            JALR   when IR(31 downto 26)="000000"  and IR(20 downto 16)="00000"
                                            and IR(10 downto 0) = "00000001001" else
            JR     when IR(31 downto 26)="000000" and IR(20 downto 0)="000000000000000001000" else
-           MULTU  when IR(31 downto 26)="000000" and IR(15 downto 0)="0000000000011001" else
-           DIVU   when IR(31 downto 26)="000000" and IR(15 downto 0)="0000000000011011" else
-           MFHI   when IR(31 downto 16)=x"0000" and IR(10 downto 0)="00000010000" else
-           MFLO   when IR(31 downto 16)=x"0000" and IR(10 downto 0)="00000010010" else
+
            invalid_instruction ; -- IMPORTANT: default condition is invalid instruction;
         
     assert i /= invalid_instruction
@@ -495,88 +489,27 @@ begin
     -- BLOCK (2/3) - DATAPATH REGISTERS load control signals generation.
     -- This block generates all other signals of the Control Unit Output Function
     ----------------------------------------------------------------------------------------
-    uins_int.CY1   <= '1' when PS=Sfetch         else '0';
+    uins_int.CY1   <= '1';
             
-    uins_int.CY2   <= '1' when PS=Sreg           else '0';
+    uins_int.CY2   <= '1';
   
-    uins_int.walu  <= '1' when PS=Salu           else '0';
+    uins_int.walu  <= '1';
                 
-    uins_int.wmdr  <= '1' when PS=Sld            else '0';
+    uins_int.wmdr  <= '1';
   
-    uins_int.wreg   <= '1' when PS=Swbk or (PS=Ssalta and (i=JAL or i=JALR)) else   '0';
+    uins_int.wreg   <= '1';
    
-    uins_int.rw    <= '0' when PS=Sst            else  '1';
+    --uins_int.rw    <= '0' when PS=Sst            else  '1';
                   
-    uins_int.ce    <= '1' when PS=Sld or PS=Sst  else '0';
+    uins_int.ce    <= '1';
     
-    uins_int.bw    <= '0' when PS=Sst and i=SB   else '1';
+    --uins_int.bw    <= '0' when PS=Sst and i=SB   else '1';
       
-    uins_int.wpc   <= '1' when PS=Swbk or PS=Sst or PS=Ssalta 
-	 		or (PS=Salu and ((i=MULTU and end_mul='1')
-			or (i=DIVU and end_div='1'))) else  '0';
+    --uins_int.wpc   <= '1' when PS=Swbk or PS=Sst or PS=Ssalta else  '0';
 
-    uins_int.whilo   <= '1' when (PS=Salu and end_mul='1' and i=MULTU)
-			  or (PS=Salu and end_div='1' and i=DIVU) 
-			else  '0';
-
-    uins_int.rst_md   <= '1' when PS=Sreg and (i=MULTU or i=DIVU) else  '0';
+    --uins_int.rst_md   <= '1' when PS=Sreg and (i=MULTU or i=DIVU) else  '0';
 
 	 uins <= uins_int;
-    ---------------------------------------------------------------------------------------------
-    -- BLOCK (3/3) - Sequential part of the control unit - two processes implementing the
-    -- Control Unit state register and the (combinational) next-state function
-    --------------------------------------------------------------------------------------------- 
-    process(rst, ck)
-    begin
-       if rst='1' then
-            PS <= Sfetch;      
-				-- Sfetch is the state the machine stays while processor is being reset
-       elsif ck'event and ck='1' then
-				PS <= NS;
-       end if;
-    end process;
-     
-     
-    process(PS, i, end_mul, end_div)
-    begin
-       case PS is         
-            -- first stage:  read the instruction pointed to by the PC
-            --
-            when Sfetch=>NS <= Sreg;  
-     
-            -- second stage: read the register bank and produce immediate data,
-            -- if needed
-            when Sreg=>NS <= Salu;  
-             
-            -- third stage: alu operation 
-            --
-            when Salu =>if (i=LBU or i=LW) then 
-										NS <= Sld;  
-								elsif (i=SB or i=SW) then 
-										NS <= Sst;
-								elsif (i=J or i=JAL or i=JALR or i=JR or i=BEQ
-                               or i=BGEZ or i=BLEZ  or i=BNE) then 
-										NS <= Ssalta;
-								elsif ((i=MULTU and end_mul='0') or (i=DIVU and end_div='0')) then
-										NS <= Salu;
-								elsif ((i=MULTU and end_mul='1') or (i=DIVU and end_div='1')) then
-										NS <= Sfetch;
-								else 
-										NS <= Swbk; 
-								end if;
-                         
-            -- fourth stage: data memory operation  
-            --
-            when Sld=>  NS <= Swbk; 
-            
-            -- forth or fifth cycle: last for most instructions  - GO BACK TO FETCH
-            -- 
-            when Sst | Ssalta | Swbk=> 
-								NS <= Sfetch;
-  
-       end case;
-
-    end process;
     
 end control_unit;
 
@@ -609,8 +542,7 @@ architecture MIPS_MCS of MIPS_MCS is
 
      ct: entity work.control_unit port map( ck=>clock, rst=>reset, 
 		i_address=>i_address, instruction=>instruction,
-		inst_branch_in=>inst_branch, salta_in=>salta, 
-		end_mul=>end_mul, end_div=>end_div, RESULT_IN=>RESULT,
+		inst_branch_in=>inst_branch, salta_in=>salta, RESULT_IN=>RESULT,
 		uins=>uins, IR_OUT=>IR, NPC_OUT=>NPC);
          
      ce <= uins.ce;
