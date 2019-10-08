@@ -1,0 +1,35 @@
+Running: C:\Xilinx\14.7\ISE_DS\ISE\bin\nt64\unwrapped\fuse.exe -intstyle ise -incremental -o C:/Users/Pablo/ise_projects/tp2/CPU_tb_isim_beh.exe -prj C:/Users/Pablo/ise_projects/tp2/CPU_tb_beh.prj work.CPU_tb 
+ISim P.20131013 (signature 0x7708f090)
+Number of CPUs detected in this system: 4
+Turning on mult-threading, number of parallel sub-compilation jobs: 8 
+Determining compilation order of HDL files
+Parsing VHDL file "C:/Users/Pablo/ise_projects/tp2/MIPS-MC_SingleEdge.vhd" into library work
+Parsing VHDL file "C:/Users/Pablo/ise_projects/tp2/MIPS-MC_SingleEdge_tb.vhd" into library work
+Starting static elaboration
+Completed static elaboration
+Compiling package standard
+Compiling package std_logic_1164
+Compiling package std_logic_arith
+Compiling package std_logic_unsigned
+Compiling package textio
+Compiling package aux_functions
+Compiling package p_mips_mcs
+Compiling architecture ram_mem of entity RAM_mem [\RAM_mem(('0','0','0','1','0','0...]
+Compiling architecture ram_mem of entity RAM_mem [\RAM_mem(('0','0','0','0','0','0...]
+Compiling package std_logic_signed
+Compiling architecture regnbits of entity regnbits [regnbits_default]
+Compiling architecture regnbits of entity regnbits [\regnbits(('0','0','0','1','0','...]
+Compiling architecture reg_bank of entity reg_bank [reg_bank_default]
+Compiling architecture alu of entity alu [alu_default]
+Compiling architecture datapath of entity datapath [datapath_default]
+Compiling architecture regnbits of entity regnbits [\regnbits(('0','0','0','0','0','...]
+Compiling architecture control_unit of entity control_unit [control_unit_default]
+Compiling architecture mips_mcs of entity MIPS_MCS [mips_mcs_default]
+Compiling architecture cpu_tb of entity cpu_tb
+Time Resolution for simulation is 1ps.
+Waiting for 11 sub-compilation(s) to finish...
+WARNING:Simulator - Unable to copy libPortabilityNOSH.dll to the simulation executable directory: boost::filesystem::copy_file: O sistema não pode encontrar o caminho especificado, "isim\CPU_tb_isim_beh.exe.sim\libPortability.dll".
+Compiled 29 VHDL Units
+Built simulation executable C:/Users/Pablo/ise_projects/tp2/CPU_tb_isim_beh.exe
+Fuse Memory Usage: 35472 KB
+Fuse CPU Usage: 1234 ms
