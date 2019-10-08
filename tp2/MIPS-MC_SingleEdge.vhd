@@ -1,32 +1,32 @@
 -------------------------------------------------------------------------
 --
--- I M P L E M E N T A Ç Ã O   P A R C I A L  D O  M I P S   (nov/2010)
+-- I M P L E M E N T A ï¿½ ï¿½ O   P A R C I A L  D O  M I P S   (nov/2010)
 --
 --  Professores     Fernando Moraes / Ney Calazans
 --
 --  ==> The top-level processor entity is MRstd
 --  21/06/2010 (Ney) - Bug corrigido no mux que gera op1 - agora recebe
---		npc e não pc.
+--		npc e nï¿½o pc.
 --  17/11/2010 (Ney) - Bugs corrigidos:
---		1 - Decodificação das instruções BGEZ e BLEZ estava 
+--		1 - Decodificaï¿½ï¿½o das instruï¿½ï¿½es BGEZ e BLEZ estava 
 --		incompleta
---		2 - Definição de que linhas escolhem o registrador a
---		ser escrito nas instruções de deslocamento 
+--		2 - Definiï¿½ï¿½o de que linhas escolhem o registrador a
+--		ser escrito nas instruï¿½ï¿½es de deslocamento 
 --		(SSLL, SLLV, SSRA, SRAV, SSRL e SRLV)
---  05/06/2012 (Ney) - Mudanças menores em nomenclatura
---  19/11/2015 (Ney) - Mudança para MIPS-MC Single Clock Edge
---			Além das mudanças óbvias de sensibilidade de elementos de 
---			memória para somente borda de subida, também mudou-se o
+--  05/06/2012 (Ney) - Mudanï¿½as menores em nomenclatura
+--  19/11/2015 (Ney) - Mudanï¿½a para MIPS-MC Single Clock Edge
+--			Alï¿½m das mudanï¿½as ï¿½bvias de sensibilidade de elementos de 
+--			memï¿½ria para somente borda de subida, tambï¿½m mudou-se o
 --			ponto de onde as entradas de dados do multiplicador e do
---			divisor provém, agora direto do banco de registradores e não
+--			divisor provï¿½m, agora direto do banco de registradores e nï¿½o
 --			dos registradores RA e RB. Ainda, mudou-se a estrutura dos 
 --			blocos de dados e controle. O Bloco de Controle agora
---			contém o PC, o NPC e o IR e naturalmente a interface com
---			a memória de instruções. Foi eliminado o estado Sidle, 
---			por não ser mais necessário.
---  04/07/2016 (Ney) - Diversas revisões em nomes de sinais para 
---			aumentar a intuitividade da descrição, mudança do
---			nome do processador para MIPS_S (ver documentação, versão 2.0
+--			contï¿½m o PC, o NPC e o IR e naturalmente a interface com
+--			a memï¿½ria de instruï¿½ï¿½es. Foi eliminado o estado Sidle, 
+--			por nï¿½o ser mais necessï¿½rio.
+--  04/07/2016 (Ney) - Diversas revisï¿½es em nomes de sinais para 
+--			aumentar a intuitividade da descriï¿½ï¿½o, mudanï¿½a do
+--			nome do processador para MIPS_S (ver documentaï¿½ï¿½o, versï¿½o 2.0
 --			ou superior).
 --  05/08/2016 (Ney) - Correcao e adaptacao dos nomes de sinais e
 --			blocos para facilitar aprendizado. Processador agora se chama
@@ -34,14 +34,14 @@
 -------------------------------------------------------------------------
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- package com os tipos básicos auxiliares para descrever o processador
+-- package com os tipos bï¿½sicos auxiliares para descrever o processador
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
 use IEEE.Std_Logic_1164.all;
 
 package p_MIPS_MCS is  
     
-    -- inst_type define as instruções decodificáveis pelo bloco de controle
+    -- inst_type define as instruï¿½ï¿½es decodificï¿½veis pelo bloco de controle
     type inst_type is  
             ( ADDU, NOP, SUBU, AAND, OOR, XXOR, NNOR, SSLL, SLLV, SSRA, SRAV,
 				SSRL, SRLV,ADDIU, ANDI, ORI, XORI, LUI, LBU, LW, SB, SW, SLT,
@@ -55,7 +55,7 @@ package p_MIPS_MCS is
             wmdr:  std_logic;       --    "    of the fourth stage
             wpc:   std_logic;       -- PC write enable
             wreg:  std_logic;       -- register bank write enable
-            whilo: std_logic;       -- habilitação de escrita nos registradores HI e LO
+            whilo: std_logic;       -- habilitaï¿½ï¿½o de escrita nos registradores HI e LO
             ce:    std_logic;       -- Chip enable and R_W controls
             rw:    std_logic;
             bw:    std_logic;       -- Byte-word control (mem write only)
@@ -67,8 +67,8 @@ end p_MIPS_MCS;
 
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- Registrador de uso geral - sensível à borda de subida do relógio (ck), 
---		com reset assíncrono (rst) e habilitação de escrita (ce)
+-- Registrador de uso geral - sensï¿½vel ï¿½ borda de subida do relï¿½gio (ck), 
+--		com reset assï¿½ncrono (rst) e habilitaï¿½ï¿½o de escrita (ce)
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
 use IEEE.std_logic_1164.all;
@@ -99,14 +99,14 @@ end regnbits;
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Banco de Registradores  (R0..R31) - 31 registradores de 32 bits
--- 	Trata-se de uma memória com três portas de acesso, não confundir
---		com a memória principal do processador. 
---		São duas portas de leitura (sinais AdRP1+DataRP1 e AdRP2+DataRP2) e
+-- 	Trata-se de uma memï¿½ria com trï¿½s portas de acesso, nï¿½o confundir
+--		com a memï¿½ria principal do processador. 
+--		Sï¿½o duas portas de leitura (sinais AdRP1+DataRP1 e AdRP2+DataRP2) e
 --		uma porta de escrita (dedfinida pelo conjunto de sinais 
 --    ck, rst, ce, AdWP e DataWP).
---		Os endereços de cada porta (AdRP1, AdRP2 e AdWP) são obviamente de
+--		Os endereï¿½os de cada porta (AdRP1, AdRP2 e AdWP) sï¿½o obviamente de
 --		5 bits (pois 2^5=32), enquanto que os barramentos de dados de 
---		saída (DataRP1, DataRP2) e de entrada (DataWP) são de 32 bits.
+--		saï¿½da (DataRP1, DataRP2) e de entrada (DataWP) sï¿½o de 32 bits.
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
 use IEEE.Std_Logic_1164.all;
@@ -156,10 +156,10 @@ begin
 end reg_bank;
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- ALU - Uma unidade lógico-aritmética puramente combinacional, cuja 
---		saída depende dos valores nas suas entradas de dados op1 e op2, cada
---		uma de 32 bits e da instrução sendo executada pelo processador
---		que é informada via o sinal de controle op_alu.
+-- ALU - Uma unidade lï¿½gico-aritmï¿½tica puramente combinacional, cuja 
+--		saï¿½da depende dos valores nas suas entradas de dados op1 e op2, cada
+--		uma de 32 bits e da instruï¿½ï¿½o sendo executada pelo processador
+--		que ï¿½ informada via o sinal de controle op_alu.
 --
 -- 22/11/2004 (Ney Calazans) - subtle error correction was done for J!
 -- Part of the work for J has been done before, by shifting IR(15 downto 0)
@@ -215,7 +215,7 @@ end alu;
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- Descrição Estrutural do Bloco de Dados 
+-- Descriï¿½ï¿½o Estrutural do Bloco de Dados 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
@@ -246,7 +246,8 @@ architecture datapath of  datapath is
     signal inst_branch, inst_R_sub, inst_I_sub: std_logic;   
     signal salta : std_logic := '0';
     signal produto : std_logic_vector(63 downto 0);
-	 signal npc: std_logic_vector(31 downto 0);
+    signal npc: std_logic_vector(31 downto 0);
+    signal uinsEX, uinsMEM, uinsER: microinstruction;
 begin
 
    -- auxiliary signals 
@@ -383,7 +384,7 @@ end datapath;
 
 --------------------------------------------------------------------------
 --------------------------------------------------------------------------
---  Descrição do Bloco de Controle (mista, estrutural-comportamental)
+--  Descriï¿½ï¿½o do Bloco de Controle (mista, estrutural-comportamental)
 --------------------------------------------------------------------------
 --------------------------------------------------------------------------
 library IEEE;
@@ -497,17 +498,34 @@ begin
                 
     uins_int.wmdr  <= '1';
   
-    uins_int.wreg   <= '1';
+    uins_int.wreg   <= '0' when  i=SW or
+                                 i=SB or
+                                 i=SLT or
+                                 i=SLTU or
+                                 i=SLTI or
+                                 i=SLTIU or
+                                 i=BEQ or
+                                 i=BGEZ or
+                                 i=BLEZ or
+                                 i=BNE or
+                                 i=J or
+                                 i=JAL or
+                                 i=JALR or
+                                 i=JR       else '1';
    
-    --uins_int.rw    <= '0' when PS=Sst            else  '1';
+    uins_int.rw    <= '1' when i=LUI or
+                               i=LBU or
+                               i=LW    else '0';
                   
-    uins_int.ce    <= '1';
+    uins_int.ce   <= '1' when i=LUI or
+                              i=LBU or
+                              i=LW or
+                              i=SB or
+                              i=SW     else '0';
     
-    --uins_int.bw    <= '0' when PS=Sst and i=SB   else '1';
+    uins_int.bw    <= '0' when i=SB   else '1';
       
-    --uins_int.wpc   <= '1' when PS=Swbk or PS=Sst or PS=Ssalta else  '0';
-
-    --uins_int.rst_md   <= '1' when PS=Sreg and (i=MULTU or i=DIVU) else  '0';
+    uins_int.wpc   <= '1';
 
 	 uins <= uins_int;
     
