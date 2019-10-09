@@ -243,7 +243,8 @@ architecture datapath of  datapath is
            outalu, RALU, MDR, mdr_int, HI, LO,
 			  quociente, resto, D_Hi, D_Lo : std_logic_vector(31 downto 0) := (others=> '0');
     signal adD, adS : std_logic_vector(4 downto 0) := (others=> '0');    
-    signal inst_branch, inst_R_sub, inst_I_sub: std_logic;   
+    signal inst_branchEX, inst_branchMEM, inst_branchER, inst_R_subEX, inst_R_subMEM,
+				inst_R_subER, inst_I_subEX, inst_I_subMEM, inst_I_subER: std_logic;   
     signal salta : std_logic := '0';
     signal produto : std_logic_vector(63 downto 0);
     signal npc: std_logic_vector(31 downto 0);
@@ -251,17 +252,36 @@ architecture datapath of  datapath is
 begin
 
    -- auxiliary signals 
-   inst_branch  <= '1' when uins.i=BEQ or uins.i=BGEZ or uins.i=BLEZ or uins.i=BNE else 
+   inst_branchEX  <= '1' when uinsEX.i=BEQ or uinsEX.i=BGEZ or uinsEX.i=BLEZ or uinsEX.i=BNE else 
                   '0';
-	inst_branch_out <= inst_branch;
+	inst_branch_out <= inst_branchEX;   
+	-- inst_R_sub is a subset of R-type instructions
+   inst_R_subEX  <= '1' when uinsEX.i=ADDU or uinsEX.i=NOP or uinsEX.i=SUBU or uinsEX.i=AAND
+                         or uinsEX.i=OOR or uinsEX.i=XXOR or uinsEX.i=NNOR else
+                   '0';
+	-- inst_I is a subset of I-type instructions
+   inst_I_subEX  <= '1' when uinsEX.i=ADDIU or uinsEX.i=ANDI or uinsEX.i=ORI or uinsEX.i=XORI else
+                   '0';
+						 
+	inst_branchMEM  <= '1' when uinsMEM.i=BEQ or uinsMEM.i=BGEZ or uinsMEM.i=BLEZ or uinsMEM.i=BNE else 
+                  '0';   
+	-- inst_R_sub is a subset of R-type instructions
+   inst_R_subMEM  <= '1' when uinsMEM.i=ADDU or uinsMEM.i=NOP or uinsMEM.i=SUBU or uinsMEM.i=AAND
+                         or uinsMEM.i=OOR or uinsMEM.i=XXOR or uinsMEM.i=NNOR else
+                   '0';
+	-- inst_I is a subset of I-type instructions
+   inst_I_subMEM  <= '1' when uinsMEM.i=ADDIU or uinsMEM.i=ANDI or uinsMEM.i=ORI or uinsMEM.i=XORI else
+                   '0';
+						 
+	inst_branchER  <= '1' when uinsER.i=BEQ or uinsER.i=BGEZ or uinsER.i=BLEZ or uinsER.i=BNE else 
+                  '0';
    
 	-- inst_R_sub is a subset of R-type instructions
-   inst_R_sub  <= '1' when uins.i=ADDU or uins.i=NOP or uins.i=SUBU or uins.i=AAND
-                         or uins.i=OOR or uins.i=XXOR or uins.i=NNOR else
+   inst_R_subER  <= '1' when uinsER.i=ADDU or uinsER.i=NOP or uinsER.i=SUBU or uinsER.i=AAND
+                         or uinsER.i=OOR or uinsER.i=XXOR or uinsER.i=NNOR else
                    '0';
-
 	-- inst_I is a subset of I-type instructions
-   inst_I_sub  <= '1' when uins.i=ADDIU or uins.i=ANDI or uins.i=ORI or uins.i=XORI else
+   inst_I_subER  <= '1' when uinsER.i=ADDIU or uinsER.i=ANDI or uinsER.i=ORI or uinsER.i=XORI else
                    '0';
 
    --==============================================================================
@@ -281,11 +301,11 @@ begin
              x"0000" & IR_IN(15 downto 0);
     
    -- Immediate constant
-   M5: cte_im <= sign_extend(29 downto 0)  & "00"     when inst_branch='1'			else
+   M5: cte_im <= sign_extend(29 downto 0)  & "00"     when inst_branchEX='1'			else
                 -- branch address adjustment for word frontier
-             "0000" & IR_IN(25 downto 0) & "00" when uins.i=J or uins.i=JAL 		else
+             "0000" & IR_IN(25 downto 0) & "00" when uinsEX.i=J or uinsEX.i=JAL 		else
                 -- J/JAL are word addressed. MSB four bits are defined at the ALU, not here!
-             x"0000" & IR_IN(15 downto 0) when uins.i=ANDI or uins.i=ORI  or uins.i=XORI 	else
+             x"0000" & IR_IN(15 downto 0) when uinsEX.i=ANDI or uinsEX.i=ORI  or uinsEX.i=XORI 	else
                 -- logic instructions with immediate operand are zero extended
              sign_extend;
                 -- The default case is used by addiu, lbu, lw, sbu and sw instructions
@@ -306,12 +326,12 @@ begin
    --==============================================================================
                       
    -- select the first ALU operand                           
-   M6: op1 <= NPC_IN  when inst_branch='1' else 
+   M6: op1 <= NPC_IN  when inst_branchEX='1' else 
           RS; 
      
    -- select the second ALU operand
-   M7: op2 <= RT when inst_R_sub='1' or uins.i=SLTU or uins.i=SLT or uins.i=JR 
-                  or uins.i=SLLV or uins.i=SRAV or uins.i=SRLV else 
+   M7: op2 <= RT when inst_R_subEX='1' or uinsEX.i=SLTU or uinsEX.i=SLT or uinsEX.i=JR 
+                  or uinsEX.i=SLLV or uinsEX.i=SRAV or uinsEX.i=SRLV else 
           IMED; 
                  
    -- ALU instantiation
@@ -364,17 +384,17 @@ begin
    --==============================================================================
 
    -- signal to be written into the register bank
-   M2: RIN <= NPC_IN when (uins.i=JALR or uins.i=JAL) else result;
+   M2: RIN <= NPC_IN when (uinsER.i=JALR or uinsER.i=JAL) else result;
    
    -- register bank write address selection
-   M4: adD <= "11111"           when uins.i=JAL else -- JAL writes in register $31
-         IR_IN(15 downto 11)    when (inst_R_sub='1' 
-								or uins.i=SLTU or uins.i=SLT
-								or uins.i=JALR
-								or uins.i=MFHI or uins.i=MFLO
-								or uins.i=SSLL or uins.i=SLLV
-								or uins.i=SSRA or uins.i=SRAV
-								or uins.i=SSRL or uins.i=SRLV) else
+   M4: adD <= "11111"           when uinsER.i=JAL else -- JAL writes in register $31
+         IR_IN(15 downto 11)    when (inst_R_subER='1' 
+								or uinsER.i=SLTU or uinsER.i=SLT
+								or uinsER.i=JALR
+								or uinsER.i=MFHI or uinsER.i=MFLO
+								or uinsER.i=SSLL or uinsER.i=SLLV
+								or uinsER.i=SSRA or uinsER.i=SRAV
+								or uinsER.i=SSRL or uinsER.i=SRLV) else
          IR_IN(20 downto 16) -- inst_I_sub='1' or uins.i=SLTIU or uins.i=SLTI 
         ;                 -- or uins.i=LW or  uins.i=LBU  or uins.i=LUI, or default
     
