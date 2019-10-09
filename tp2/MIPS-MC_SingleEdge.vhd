@@ -405,6 +405,8 @@ begin
 	   	HI when uins.i=MFHI else
 	   	LO when uins.i=MFLO else
                 RALU;
+					 
+	EXMEM: entity work.barreira port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>uinsEX, Q=>uinsMEM);
 
    --==============================================================================
    -- fifth stage
@@ -426,6 +428,9 @@ begin
         ;                 -- or uins.i=LW or  uins.i=LBU  or uins.i=LUI, or default
     
   RESULT_OUT <= result;
+  
+  	MEMER: entity work.barreira port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>uinsMEM, Q=>uinsER);
+
 	 
 end datapath;
 
