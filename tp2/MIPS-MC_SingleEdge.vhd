@@ -97,6 +97,31 @@ begin
         
 end regnbits;
 
+library IEEE;
+use IEEE.std_logic_1164.all;
+use work.p_MIPS_MCS.all;
+
+entity barreira is
+           port(  ck, rst, ce : in std_logic;
+                  D : in  microinstruction;
+                  Q : out microinstruction
+               );
+end barreira;
+
+architecture barreira of barreira is 
+begin
+
+  process(ck, rst)
+  begin
+       if ck'event and ck = '1' then
+           if ce = '1' then
+              Q <= D; 
+           end if;
+       end if;
+  end process;
+        
+end barreira;
+
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Banco de Registradores  (R0..R31) - 31 registradores de 32 bits
 -- 	Trata-se de uma mem�ria com tr�s portas de acesso, n�o confundir
@@ -319,6 +344,8 @@ begin
    RTreg:  entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>R2, Q=>RT);
   
    RIM: entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>cte_im, Q=>IMED);
+	
+	DIEX: entity work.barreira port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>uins, Q=>uinsEX);
  
  
   --==============================================================================
