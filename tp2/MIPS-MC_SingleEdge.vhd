@@ -61,9 +61,10 @@ end regnbits;
 
 library IEEE;
 use IEEE.std_logic_1164.all;
+use work.p_MIPS_MCS.all;
 
 entity barreira is
-           generic( INIT_VALUE : STD_LOGIC_VECTOR(31 downto 0) := (others=>'0') );
+           --generic( INIT_VALUE : STD_LOGIC_VECTOR(31 downto 0) := (others=>'0') );
            port(  ck, rst, ce : in std_logic;
                   D : in  microinstruction;
                   Q : out microinstruction
@@ -76,7 +77,7 @@ begin
   process(ck, rst)
   begin
        if rst = '1' then
-              Q <= INIT_VALUE(31 downto 0);
+              --Q <= INIT_VALUE(31 downto 0);
        elsif ck'event and ck = '1' then
            if ce = '1' then
               Q <= D; 
@@ -285,28 +286,28 @@ begin
           
    REGS: entity work.reg_bank(reg_bank) port map
         (AdRP1=>adS, DataRP1=>R1, AdRP2=>IR_IN(20 downto 16), DataRP2=>R2,
-		   ck=>ck, rst=>rst, ce=>uins.wreg, AdWP=>adD, DataWP=>RIN);
+		   ck=>ck, rst=>rst, ce=>uinsDI.wreg, AdWP=>adD, DataWP=>RIN);
     
    -- sign extension 
-   sign_extend <=  x"FFFF" & IR_IN(15 downto 0) when IR_IN(15)='1' else
-             x"0000" & IR_IN(15 downto 0);
+   sign_extend <=  x"FFFF" & IR(15 downto 0) when IR(15)='1' else
+             x"0000" & IR(15 downto 0);
     
    -- Immediate constant
    M5: cte_im <= sign_extend(29 downto 0)  & "00"     when inst_branchDI='1'			else
                 -- branch address adjustment for word frontier
-             "0000" & IR_IN(25 downto 0) & "00" when uinsDI.i=J or uinsDI.i=JAL 		else
+             "0000" & IR(25 downto 0) & "00" when uinsDI.i=J or uinsDI.i=JAL 		else
                 -- J/JAL are word addressed. MSB four bits are defined at the ALU, not here!
-             x"0000" & IR_IN(15 downto 0) when uinsDI.i=ANDI or uinsDI.i=ORI  or uinsDI.i=XORI 	else
+             x"0000" & IR(15 downto 0) when uinsDI.i=ANDI or uinsDI.i=ORI  or uinsDI.i=XORI 	else
                 -- logic instructions with immediate operand are zero extended
              sign_extend;
                 -- The default case is used by addiu, lbu, lw, sbu and sw instructions
              
    -- second stage registers
-   RSreg:  entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>R1, Q=>RS);
+   RSreg:  entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uinsDI.CY2, D=>R1, Q=>RS);
 
-   RTreg:  entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>R2, Q=>RT);
+   RTreg:  entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uinsDI.CY2, D=>R2, Q=>RT);
   
-   RIM: entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>cte_im, Q=>IMED);
+   RIM: entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uinsDI.CY2, D=>cte_im, Q=>IMED);
  
  
   --==============================================================================
@@ -314,7 +315,7 @@ begin
    --==============================================================================
                       
    -- select the first ALU operand                           
-   M6: op1 <= npc  when inst_branchEX='1' else 
+   M6: op1 <= npcEX  when inst_branchEX='1' else 
           RS; 
      
    -- select the second ALU operand
@@ -323,10 +324,10 @@ begin
           IMED; 
                  
    -- ALU instantiation
-   DALU: entity work.alu port map (op1=>op1, op2=>op2, outalu=>outalu, op_alu=>uins.i);
+   DALU: entity work.alu port map (op1=>op1, op2=>op2, outalu=>outalu, op_alu=>uinsEX.i);
    
    -- ALU register
-   Reg_ALU: entity work.regnbits  port map(ck=>ck, rst=>rst, ce=>uins.walu, 
+   Reg_ALU: entity work.regnbits  port map(ck=>ck, rst=>rst, ce=>uinsEX.walu, 
 				D=>outalu, Q=>RALU);               
  
    -- evaluation of conditions to take the branch instructions

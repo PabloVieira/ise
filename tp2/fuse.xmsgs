@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- IMPORTANT: This is an internal file that has been generated
+     by the Xilinx ISE software.  Any direct editing or
+     changes made to this file may result in unpredictable
+     behavior or data corruption.  It is strongly advised that
+     users do not edit the contents of this file. -->
+<messages>
+<msg type="error" file="HDLCompiler" num="32" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 233: &lt;<arg fmt="%s" index="1">uinsmem</arg>&gt; is already declared in this region.
+</msg>
+
+<msg type="error" file="HDLCompiler" num="288" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 246: Cannot read from &apos;out&apos; object <arg fmt="%s" index="1">uinsmem</arg> ; use &apos;buffer&apos; or &apos;inout&apos;
+</msg>
+
+<msg type="error" file="HDLCompiler" num="288" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 247: Cannot read from &apos;out&apos; object <arg fmt="%s" index="1">uinsmem</arg> ; use &apos;buffer&apos; or &apos;inout&apos;
+</msg>
+
+<msg type="error" file="HDLCompiler" num="288" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 251: Cannot read from &apos;out&apos; object <arg fmt="%s" index="1">uinsmem</arg> ; use &apos;buffer&apos; or &apos;inout&apos;
+</msg>
+
+<msg type="error" file="HDLCompiler" num="69" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 258: &lt;<arg fmt="%s" index="1">salta_in</arg>&gt; is not declared.
+</msg>
+
+<msg type="error" file="HDLCompiler" num="69" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 284: &lt;<arg fmt="%s" index="1">uins</arg>&gt; is not declared.
+</msg>
+
+<msg type="error" file="HDLCompiler" num="69" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 285: &lt;<arg fmt="%s" index="1">ir_in</arg>&gt; is not declared.
+</msg>
+
+<msg type="error" file="HDLCompiler" num="69" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 288: &lt;<arg fmt="%s" index="1">ir_in</arg>&gt; is not declared.
+</msg>
+
+<msg type="error" file="HDLCompiler" num="69" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 330: &lt;<arg fmt="%s" index="1">uins</arg>&gt; is not declared.
+</msg>
+
+<msg type="error" file="HDLCompiler" num="69" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 345: &lt;<arg fmt="%s" index="1">uins</arg>&gt; is not declared.
+</msg>
+
+<msg type="error" file="HDLCompiler" num="69" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 348: &lt;<arg fmt="%s" index="1">uins</arg>&gt; is not declared.
+</msg>
+
+<msg type="error" file="HDLCompiler" num="69" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 351: &lt;<arg fmt="%s" index="1">uins</arg>&gt; is not declared.
+</msg>
+
+<msg type="error" file="HDLCompiler" num="288" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 354: Cannot read from &apos;out&apos; object <arg fmt="%s" index="1">uinsmem</arg> ; use &apos;buffer&apos; or &apos;inout&apos;
+</msg>
+
+<msg type="error" file="HDLCompiler" num="69" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 362: &lt;<arg fmt="%s" index="1">mem</arg>&gt; is not declared.
+</msg>
+
+<msg type="error" file="HDLCompiler" num="288" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 362: Cannot read from &apos;out&apos; object <arg fmt="%s" index="1">uinsmem</arg> ; use &apos;buffer&apos; or &apos;inout&apos;
+</msg>
+
+<msg type="error" file="HDLCompiler" num="288" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 367: Cannot read from &apos;out&apos; object <arg fmt="%s" index="1">uinsmem</arg> ; use &apos;buffer&apos; or &apos;inout&apos;
+</msg>
+
+<msg type="error" file="HDLCompiler" num="288" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 368: Cannot read from &apos;out&apos; object <arg fmt="%s" index="1">uinsmem</arg> ; use &apos;buffer&apos; or &apos;inout&apos;
+</msg>
+
+<msg type="error" file="HDLCompiler" num="288" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 369: Cannot read from &apos;out&apos; object <arg fmt="%s" index="1">uinsmem</arg> ; use &apos;buffer&apos; or &apos;inout&apos;
+</msg>
+
+<msg type="error" file="HDLCompiler" num="288" delta="unknown" >"C:/Users/Pablo/Documents/arqi/ise/tp2/MIPS-MC_SingleEdge.vhd" Line 370: Cannot read from &apos;out&apos; object <arg fmt="%s" index="1">uinsmem</arg> ; use &apos;buffer&apos; or &apos;inout&apos;
+</msg>
+
+</messages>
+
