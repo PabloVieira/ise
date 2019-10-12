@@ -195,7 +195,9 @@ architecture cpu_tb of cpu_tb is
     signal Dce_n, Dwe_n, Doe_n, Ice_n, Iwe_n, Ioe_n, ck, rst, rstCPU, 
            go_i, go_d, ce, rw, bw: std_logic;
     
-    file ARQ : TEXT open READ_MODE is "Test_Program_Allinst_MIPS_MCS.txt";
+    --file ARQ : TEXT open READ_MODE is "Test_Program_Allinst_MIPS_MCS.txt";
+	 file ARQ : TEXT open READ_MODE is "soma_cte.txt";
+	 --file ARQ : TEXT open READ_MODE is "Test_Program_Allinst_MIPS_MCS.txt";
  
 begin
            

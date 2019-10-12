@@ -1,52 +1,16 @@
--------------------------------------------------------------------------
---
--- I M P L E M E N T A ï¿½ ï¿½ O   P A R C I A L  D O  M I P S   (nov/2010)
---
---  Professores     Fernando Moraes / Ney Calazans
---
---  ==> The top-level processor entity is MRstd
---  21/06/2010 (Ney) - Bug corrigido no mux que gera op1 - agora recebe
---		npc e nï¿½o pc.
---  17/11/2010 (Ney) - Bugs corrigidos:
---		1 - Decodificaï¿½ï¿½o das instruï¿½ï¿½es BGEZ e BLEZ estava 
---		incompleta
---		2 - Definiï¿½ï¿½o de que linhas escolhem o registrador a
---		ser escrito nas instruï¿½ï¿½es de deslocamento 
---		(SSLL, SLLV, SSRA, SRAV, SSRL e SRLV)
---  05/06/2012 (Ney) - Mudanï¿½as menores em nomenclatura
---  19/11/2015 (Ney) - Mudanï¿½a para MIPS-MC Single Clock Edge
---			Alï¿½m das mudanï¿½as ï¿½bvias de sensibilidade de elementos de 
---			memï¿½ria para somente borda de subida, tambï¿½m mudou-se o
---			ponto de onde as entradas de dados do multiplicador e do
---			divisor provï¿½m, agora direto do banco de registradores e nï¿½o
---			dos registradores RA e RB. Ainda, mudou-se a estrutura dos 
---			blocos de dados e controle. O Bloco de Controle agora
---			contï¿½m o PC, o NPC e o IR e naturalmente a interface com
---			a memï¿½ria de instruï¿½ï¿½es. Foi eliminado o estado Sidle, 
---			por nï¿½o ser mais necessï¿½rio.
---  04/07/2016 (Ney) - Diversas revisï¿½es em nomes de sinais para 
---			aumentar a intuitividade da descriï¿½ï¿½o, mudanï¿½a do
---			nome do processador para MIPS_S (ver documentaï¿½ï¿½o, versï¿½o 2.0
---			ou superior).
---  05/08/2016 (Ney) - Correcao e adaptacao dos nomes de sinais e
---			blocos para facilitar aprendizado. Processador agora se chama
---			MIPS_MCS (MIPS Multi-Ciclo Single Edge)
--------------------------------------------------------------------------
-
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- package com os tipos bï¿½sicos auxiliares para descrever o processador
+-- package com os tipos básicos auxiliares para descrever o processador
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
 use IEEE.Std_Logic_1164.all;
 
 package p_MIPS_MCS is  
     
-    -- inst_type define as instruï¿½ï¿½es decodificï¿½veis pelo bloco de controle
+    -- inst_type define as instruções decodificáveis pelo bloco de controle
     type inst_type is  
             ( ADDU, NOP, SUBU, AAND, OOR, XXOR, NNOR, SSLL, SLLV, SSRA, SRAV,
 				SSRL, SRLV,ADDIU, ANDI, ORI, XORI, LUI, LBU, LW, SB, SW, SLT,
-				SLTU, SLTI,	SLTIU, BEQ, BGEZ, BLEZ, BNE, J, JAL, JALR, JR, 
-				MULTU, DIVU, MFHI, MFLO, invalid_instruction);
+				SLTU, SLTI,	SLTIU, BEQ, BGEZ, BLEZ, BNE, J, JAL, JALR, JR, invalid_instruction);
  
     type microinstruction is record
             CY1:   std_logic;       -- command of the first stage
@@ -55,20 +19,18 @@ package p_MIPS_MCS is
             wmdr:  std_logic;       --    "    of the fourth stage
             wpc:   std_logic;       -- PC write enable
             wreg:  std_logic;       -- register bank write enable
-            whilo: std_logic;       -- habilitaï¿½ï¿½o de escrita nos registradores HI e LO
             ce:    std_logic;       -- Chip enable and R_W controls
             rw:    std_logic;
             bw:    std_logic;       -- Byte-word control (mem write only)
             i:     inst_type;       -- operation specification
-            rst_md:std_logic;       -- mult and div initialization
     end record;
          
 end p_MIPS_MCS;
 
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- Registrador de uso geral - sensï¿½vel ï¿½ borda de subida do relï¿½gio (ck), 
---		com reset assï¿½ncrono (rst) e habilitaï¿½ï¿½o de escrita (ce)
+-- Registrador de uso geral - sensível à borda de subida do relógio (ck), 
+--		com reset assíncrono (rst) e habilitação de escrita (ce)
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
 use IEEE.std_logic_1164.all;
@@ -99,9 +61,9 @@ end regnbits;
 
 library IEEE;
 use IEEE.std_logic_1164.all;
-use work.p_MIPS_MCS.all;
 
 entity barreira is
+           generic( INIT_VALUE : STD_LOGIC_VECTOR(31 downto 0) := (others=>'0') );
            port(  ck, rst, ce : in std_logic;
                   D : in  microinstruction;
                   Q : out microinstruction
@@ -113,7 +75,9 @@ begin
 
   process(ck, rst)
   begin
-       if ck'event and ck = '1' then
+       if rst = '1' then
+              Q <= INIT_VALUE(31 downto 0);
+       elsif ck'event and ck = '1' then
            if ce = '1' then
               Q <= D; 
            end if;
@@ -124,14 +88,14 @@ end barreira;
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Banco de Registradores  (R0..R31) - 31 registradores de 32 bits
--- 	Trata-se de uma memï¿½ria com trï¿½s portas de acesso, nï¿½o confundir
---		com a memï¿½ria principal do processador. 
---		Sï¿½o duas portas de leitura (sinais AdRP1+DataRP1 e AdRP2+DataRP2) e
+-- 	Trata-se de uma memória com três portas de acesso, não confundir
+--		com a memória principal do processador. 
+--		São duas portas de leitura (sinais AdRP1+DataRP1 e AdRP2+DataRP2) e
 --		uma porta de escrita (dedfinida pelo conjunto de sinais 
 --    ck, rst, ce, AdWP e DataWP).
---		Os endereï¿½os de cada porta (AdRP1, AdRP2 e AdWP) sï¿½o obviamente de
+--		Os endereços de cada porta (AdRP1, AdRP2 e AdWP) são obviamente de
 --		5 bits (pois 2^5=32), enquanto que os barramentos de dados de 
---		saï¿½da (DataRP1, DataRP2) e de entrada (DataWP) sï¿½o de 32 bits.
+--		saída (DataRP1, DataRP2) e de entrada (DataWP) são de 32 bits.
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
 use IEEE.Std_Logic_1164.all;
@@ -181,10 +145,10 @@ begin
 end reg_bank;
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- ALU - Uma unidade lï¿½gico-aritmï¿½tica puramente combinacional, cuja 
---		saï¿½da depende dos valores nas suas entradas de dados op1 e op2, cada
---		uma de 32 bits e da instruï¿½ï¿½o sendo executada pelo processador
---		que ï¿½ informada via o sinal de controle op_alu.
+-- ALU - Uma unidade lógico-aritmética puramente combinacional, cuja 
+--		saída depende dos valores nas suas entradas de dados op1 e op2, cada
+--		uma de 32 bits e da instrução sendo executada pelo processador
+--		que é informada via o sinal de controle op_alu.
 --
 -- 22/11/2004 (Ney Calazans) - subtle error correction was done for J!
 -- Part of the work for J has been done before, by shifting IR(15 downto 0)
@@ -234,13 +198,13 @@ begin
 													op_alu=SSRL   else 
         to_StdLogicVector(to_bitvector(op2) srl  CONV_INTEGER(op1(5 downto 0)))    when
 													op_alu=SRLV   else 
-        op1 + op2;    -- default for ADDU, NOP,ADDIU,LBU,LW,SW,SB,BEQ,BGEZ,BLEZ,BNE    
+        op1 + op2;    -- default for ADDU,ADDIU,LBU,LW,SW,SB,BEQ,BGEZ,BLEZ,BNE    
 
 end alu;
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- Descriï¿½ï¿½o Estrutural do Bloco de Dados 
+-- Descrição Estrutural do Bloco de Dados 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
@@ -252,62 +216,64 @@ use work.p_MIPS_MCS.all;
 entity datapath is
       port(  ck, rst :     in std_logic;
              d_address :   out std_logic_vector(31 downto 0);
+			    i_address :   out std_logic_vector(31 downto 0);
              data :        inout std_logic_vector(31 downto 0); 
-				 inst_branch_out, salta_out : out std_logic;
-             end_mul :	   out std_logic;
-             end_div :	   out std_logic;
-             RESULT_OUT :  out std_logic_vector(31 downto 0);
-             uins :        in microinstruction;
-             IR_IN :  		in std_logic_vector(31 downto 0);
-				 NPC_IN : 		in std_logic_vector(31 downto 0)
+             instruction :  		in std_logic_vector(31 downto 0);
+				 uinsMEM : out microinstruction
           );
 end datapath;
 
 architecture datapath of  datapath is
     signal result, R1, R2, RS, RT, RIN, sign_extend, cte_im, IMED, op1, op2, 
-           outalu, RALU, MDR, mdr_int, HI, LO,
-			  quociente, resto, D_Hi, D_Lo : std_logic_vector(31 downto 0) := (others=> '0');
+           outalu, RALU, MDR, mdr_int : std_logic_vector(31 downto 0) := (others=> '0');
     signal adD, adS : std_logic_vector(4 downto 0) := (others=> '0');    
-    signal inst_branchEX, inst_branchMEM, inst_branchER, inst_R_subEX, inst_R_subMEM,
-				inst_R_subER, inst_I_subEX, inst_I_subMEM, inst_I_subER: std_logic;   
+    signal inst_branchDI, inst_branchEX, inst_R_subEX, inst_R_subMEM, inst_I_sub: std_logic;   
     signal salta : std_logic := '0';
-    signal produto : std_logic_vector(63 downto 0);
-    signal npc: std_logic_vector(31 downto 0);
-    signal uinsEX, uinsMEM, uinsER: microinstruction;
+	 signal uinsDI, uinsEX, uinsMEM, uinsER: microinstruction;
+	 signal dtpc, npcDI, npcEX, pc, incpc, IR  : std_logic_vector(31 downto 0);
 begin
 
    -- auxiliary signals 
-   inst_branchEX  <= '1' when uinsEX.i=BEQ or uinsEX.i=BGEZ or uinsEX.i=BLEZ or uinsEX.i=BNE else 
-                  '0';
-	inst_branch_out <= inst_branchEX;   
+   inst_branchDI  <= '1' when uinsDI.i=BEQ or uinsDI.i=BGEZ or uinsDI.i=BLEZ or uinsDI.i=BNE
+								 else '0';
+   inst_branchEX  <= '1' when uinsEX.i=BEQ or uinsEX.i=BGEZ or uinsEX.i=BLEZ or uinsEX.i=BNE
+								 else '0';   
 	-- inst_R_sub is a subset of R-type instructions
-   inst_R_subEX  <= '1' when uinsEX.i=ADDU or uinsEX.i=NOP or uinsEX.i=SUBU or uinsEX.i=AAND
+   inst_R_subEX  <= '1' when uinsEX.i=ADDU or uinsEX.i=SUBU or uinsEX.i=AAND
                          or uinsEX.i=OOR or uinsEX.i=XXOR or uinsEX.i=NNOR else
                    '0';
-	-- inst_I is a subset of I-type instructions
-   inst_I_subEX  <= '1' when uinsEX.i=ADDIU or uinsEX.i=ANDI or uinsEX.i=ORI or uinsEX.i=XORI else
-                   '0';
-						 
-	inst_branchMEM  <= '1' when uinsMEM.i=BEQ or uinsMEM.i=BGEZ or uinsMEM.i=BLEZ or uinsMEM.i=BNE else 
-                  '0';   
-	-- inst_R_sub is a subset of R-type instructions
-   inst_R_subMEM  <= '1' when uinsMEM.i=ADDU or uinsMEM.i=NOP or uinsMEM.i=SUBU or uinsMEM.i=AAND
+	inst_R_subMEM  <= '1' when uinsMEM.i=ADDU or uinsMEM.i=SUBU or uinsMEM.i=AAND
                          or uinsMEM.i=OOR or uinsMEM.i=XXOR or uinsMEM.i=NNOR else
-                   '0';
+                   '0';						 
+
 	-- inst_I is a subset of I-type instructions
-   inst_I_subMEM  <= '1' when uinsMEM.i=ADDIU or uinsMEM.i=ANDI or uinsMEM.i=ORI or uinsMEM.i=XORI else
+   inst_I_sub  <= '1' when uinsMEM.i=ADDIU or uinsMEM.i=ANDI or uinsMEM.i=ORI or uinsMEM.i=XORI else
                    '0';
 						 
-	inst_branchER  <= '1' when uinsER.i=BEQ or uinsER.i=BGEZ or uinsER.i=BLEZ or uinsER.i=BNE else 
-                  '0';
+--==============================================================================
+   -- Instruction fetch and PC increment
+   --==============================================================================
+  
+   M1: dtpc <=	result when (inst_branchEX='1' and salta_in='1') or uinsEX.i=J
+   			or uinsEX.i=JAL or uinsEX.i=JALR or uinsEX.i=JR	else
+   		npcDI;
    
-	-- inst_R_sub is a subset of R-type instructions
-   inst_R_subER  <= '1' when uinsER.i=ADDU or uinsER.i=NOP or uinsER.i=SUBU or uinsER.i=AAND
-                         or uinsER.i=OOR or uinsER.i=XXOR or uinsER.i=NNOR else
-                   '0';
-	-- inst_I is a subset of I-type instructions
-   inst_I_subER  <= '1' when uinsER.i=ADDIU or uinsER.i=ANDI or uinsER.i=ORI or uinsER.i=XORI else
-                   '0';
+   -- Code memory starting address: beware of the OFFSET! 
+   -- The one below (x"00400000") serves for code generated 
+   -- by the MARS simulator
+   RPC: entity work.regnbits generic map(INIT_VALUE=>x"00400000")   
+                            port map(ck=>ck, rst=>rst, ce=>uinsEX.wpc, D=>dtpc, Q=>pc);
+
+   incpc <= pc + 4;
+  
+   RNPC: entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uinsEX.CY1, 
+			D=>incpc, Q=>npcDI);     
+           
+   RIR: 	entity work.regnbits  port map(ck=>ck, rst=>rst, ce=>uinsEX.CY1,
+			D=>instruction, Q=>IR);
+             
+   i_address <= pc;  -- connects PC output to the instruction memory address bus
+   						 
 
    --==============================================================================
    -- second stage
@@ -326,26 +292,21 @@ begin
              x"0000" & IR_IN(15 downto 0);
     
    -- Immediate constant
-   M5: cte_im <= sign_extend(29 downto 0)  & "00"     when inst_branchEX='1'			else
+   M5: cte_im <= sign_extend(29 downto 0)  & "00"     when inst_branchDI='1'			else
                 -- branch address adjustment for word frontier
-             "0000" & IR_IN(25 downto 0) & "00" when uinsEX.i=J or uinsEX.i=JAL 		else
+             "0000" & IR_IN(25 downto 0) & "00" when uinsDI.i=J or uinsDI.i=JAL 		else
                 -- J/JAL are word addressed. MSB four bits are defined at the ALU, not here!
-             x"0000" & IR_IN(15 downto 0) when uinsEX.i=ANDI or uinsEX.i=ORI  or uinsEX.i=XORI 	else
+             x"0000" & IR_IN(15 downto 0) when uinsDI.i=ANDI or uinsDI.i=ORI  or uinsDI.i=XORI 	else
                 -- logic instructions with immediate operand are zero extended
              sign_extend;
                 -- The default case is used by addiu, lbu, lw, sbu and sw instructions
              
    -- second stage registers
-	RNPCdiex: entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uins.CY2, 
-															D=>NPC_IN, Q=>npc); 
-			
    RSreg:  entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>R1, Q=>RS);
 
    RTreg:  entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>R2, Q=>RT);
   
    RIM: entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>cte_im, Q=>IMED);
-	
-	DIEX: entity work.barreira port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>uins, Q=>uinsEX);
  
  
   --==============================================================================
@@ -353,7 +314,7 @@ begin
    --==============================================================================
                       
    -- select the first ALU operand                           
-   M6: op1 <= NPC_IN  when inst_branchEX='1' else 
+   M6: op1 <= npc  when inst_branchEX='1' else 
           RS; 
      
    -- select the second ALU operand
@@ -369,22 +330,10 @@ begin
 				D=>outalu, Q=>RALU);               
  
    -- evaluation of conditions to take the branch instructions
-   salta <=  '1' when ( (RS=RT  and uins.i=BEQ)  or (RS>=0  and uins.i=BGEZ) or
-                        (RS<=0  and uins.i=BLEZ) or (RS/=RT and uins.i=BNE) )  else
+   salta <=  '1' when ( (RS=RT  and uinsEX.i=BEQ)  or (RS>=0  and uinsEX.i=BGEZ) or
+                        (RS<=0  and uinsEX.i=BLEZ) or (RS/=RT and uinsEX.i=BNE) )  else
              '0';
-   salta_out <= salta;
-
-   D_Hi <= produto(63 downto 32) when uins.i=MULTU else 
-          resto; 
-   D_Lo <= produto(31 downto 0) when uins.i=MULTU else 
-          quociente; 
-
-      -- HI and LO registers
-   REG_HI: entity work.regnbits  port map(ck=>ck, rst=>rst, ce=>uins.whilo, 
-			D=>D_Hi, Q=>HI);               
-   REG_LO: entity work.regnbits  port map(ck=>ck, rst=>rst, ce=>uins.whilo, 
-			D=>D_Lo, Q=>LO);               
-
+				 
    --==============================================================================
    -- fourth stage
    --==============================================================================
@@ -401,42 +350,32 @@ begin
    RMDR: entity work.regnbits  port map(ck=>ck, rst=>rst, ce=>uins.wmdr,
 			D=>mdr_int, Q=>MDR);                 
   
-   M9: result <=    MDR when uins.i=LW  or uins.i=LBU else
-	   	HI when uins.i=MFHI else
-	   	LO when uins.i=MFLO else
-                RALU;
-					 
-	EXMEM: entity work.barreira port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>uinsEX, Q=>uinsMEM);
+   M9: result <=    MDR when uinsMEM.i=LW  or uinsMEM.i=LBU else
+						  RALU;
 
    --==============================================================================
    -- fifth stage
    --==============================================================================
 
    -- signal to be written into the register bank
-   M2: RIN <= NPC_IN when (uinsER.i=JALR or uinsER.i=JAL) else result;
+   M2: RIN <= npcDI when (uinsDI.i=MEM or uinsMEM.i=JAL) else result;
    
    -- register bank write address selection
-   M4: adD <= "11111"           when uinsER.i=JAL else -- JAL writes in register $31
-         IR_IN(15 downto 11)    when (inst_R_subER='1' 
-								or uinsER.i=SLTU or uinsER.i=SLT
-								or uinsER.i=JALR
-								or uinsER.i=MFHI or uinsER.i=MFLO
-								or uinsER.i=SSLL or uinsER.i=SLLV
-								or uinsER.i=SSRA or uinsER.i=SRAV
-								or uinsER.i=SSRL or uinsER.i=SRLV) else
+   M4: adD <= "11111"           when uinsMEM.i=JAL else -- JAL writes in register $31
+         IR_IN(15 downto 11)    when (inst_R_subMEM='1' 
+								or uinsMEM.i=SLTU or uinsMEM.i=SLT
+								or uinsMEM.i=JALR
+								or uinsMEM.i=SSLL or uinsMEM.i=SLLV
+								or uinsMEM.i=SSRA or uinsMEM.i=SRAV
+								or uinsMEM.i=SSRL or uinsMEM.i=SRLV) else
          IR_IN(20 downto 16) -- inst_I_sub='1' or uins.i=SLTIU or uins.i=SLTI 
         ;                 -- or uins.i=LW or  uins.i=LBU  or uins.i=LUI, or default
-    
-  RESULT_OUT <= result;
-  
-  	MEMER: entity work.barreira port map(ck=>ck, rst=>rst, ce=>uins.CY2, D=>uinsMEM, Q=>uinsER);
-
 	 
 end datapath;
 
 --------------------------------------------------------------------------
 --------------------------------------------------------------------------
---  Descriï¿½ï¿½o do Bloco de Controle (mista, estrutural-comportamental)
+--  Descrição do Bloco de Controle (mista, estrutural-comportamental)
 --------------------------------------------------------------------------
 --------------------------------------------------------------------------
 library IEEE;
@@ -447,47 +386,22 @@ use work.p_MIPS_MCS.all;
 entity control_unit is
         port(	ck, rst : in std_logic;
 					inst_branch_in, salta_in : in std_logic;
+					end_mul, end_div : in std_logic;
 					i_address : out std_logic_vector(31 downto 0);
 					instruction : in std_logic_vector(31 downto 0);
-					RESULT_IN : in std_logic_vector(31 downto 0);
 					uins : out microinstruction;
-					IR_OUT : out std_logic_vector(31 downto 0);
-					NPC_OUT : out std_logic_vector(31 downto 0)
+					IR_OUT : out std_logic_vector(31 downto 0)
              );
 end control_unit;
                    
 architecture control_unit of control_unit is
+   type type_state is (Sfetch, Sreg, Salu, Swbk, Sld, Sst, Ssalta); -- Sidle, 
+   signal PS, NS : type_state;
    signal i : inst_type;
 	signal uins_int : microinstruction;
 	signal dtpc, npc, pc, incpc, IR  : std_logic_vector(31 downto 0);
 begin
       
-   --==============================================================================
-   -- Instruction fetch and PC increment
-   --==============================================================================
-  
-   M1: dtpc <=	RESULT_IN when (inst_branch_in='1' and salta_in='1') or uins_int.i=J
-   			or uins_int.i=JAL or uins_int.i=JALR or uins_int.i=JR	else
-   		npc;
-   
-	NPC_OUT <= npc;
-   -- Code memory starting address: beware of the OFFSET! 
-   -- The one below (x"00400000") serves for code generated 
-   -- by the MARS simulator
-   RPC: entity work.regnbits generic map(INIT_VALUE=>x"00400000")   
-                            port map(ck=>ck, rst=>rst, ce=>uins_int.wpc, D=>dtpc, Q=>pc);
-
-   incpc <= pc + 4;
-  
-   RNPCbidi: entity work.regnbits port map(ck=>ck, rst=>rst, ce=>uins_int.CY1, 
-			D=>incpc, Q=>npc);     
-           
-   RIR: 	entity work.regnbits  port map(ck=>ck, rst=>rst, ce=>uins_int.CY1,
-			D=>instruction, Q=>IR);
-
-   IR_OUT <= IR ;    -- IR is the Instruction Register
-             
-   i_address <= pc;  -- connects PC output to the instruction memory address bus
    
    
     ----------------------------------------------------------------------------------------
@@ -495,7 +409,6 @@ begin
     -- This block generates one signal (i) of the Control Unit Output Function
     ----------------------------------------------------------------------------------------
     i <=   ADDU   when IR(31 downto 26)="000000" and IR(10 downto 0)="00000100001" else
-			  NOP    when IR(31 downto 26)="000000" and IR(10 downto 0)="00000100001" else
            SUBU   when IR(31 downto 26)="000000" and IR(10 downto 0)="00000100011" else
            AAND   when IR(31 downto 26)="000000" and IR(10 downto 0)="00000100100" else
            OOR    when IR(31 downto 26)="000000" and IR(10 downto 0)="00000100101" else
@@ -529,7 +442,10 @@ begin
            JALR   when IR(31 downto 26)="000000"  and IR(20 downto 16)="00000"
                                            and IR(10 downto 0) = "00000001001" else
            JR     when IR(31 downto 26)="000000" and IR(20 downto 0)="000000000000000001000" else
-
+           MULTU  when IR(31 downto 26)="000000" and IR(15 downto 0)="0000000000011001" else
+           DIVU   when IR(31 downto 26)="000000" and IR(15 downto 0)="0000000000011011" else
+           MFHI   when IR(31 downto 16)=x"0000" and IR(10 downto 0)="00000010000" else
+           MFLO   when IR(31 downto 16)=x"0000" and IR(10 downto 0)="00000010010" else
            invalid_instruction ; -- IMPORTANT: default condition is invalid instruction;
         
     assert i /= invalid_instruction
@@ -542,44 +458,88 @@ begin
     -- BLOCK (2/3) - DATAPATH REGISTERS load control signals generation.
     -- This block generates all other signals of the Control Unit Output Function
     ----------------------------------------------------------------------------------------
-    uins_int.CY1   <= '1';
+    uins_int.CY1   <= '1' when PS=Sfetch         else '0';
             
-    uins_int.CY2   <= '1';
+    uins_int.CY2   <= '1' when PS=Sreg           else '0';
   
-    uins_int.walu  <= '1';
+    uins_int.walu  <= '1' when PS=Salu           else '0';
                 
-    uins_int.wmdr  <= '1';
+    uins_int.wmdr  <= '1' when PS=Sld            else '0';
   
-    uins_int.wreg   <= '0' when  i=SW or
-                                 i=SB or
-                                 i=SLT or
-                                 i=SLTU or
-                                 i=SLTI or
-                                 i=SLTIU or
-                                 i=BEQ or
-                                 i=BGEZ or
-                                 i=BLEZ or
-                                 i=BNE or
-                                 i=J or
-                                 i=JAL or
-                                 i=JALR or
-                                 i=JR       else '1';
+    uins_int.wreg   <= '1' when PS=Swbk or (PS=Ssalta and (i=JAL or i=JALR)) else   '0';
    
-    uins_int.rw    <= '1' when i=LUI or
-                               i=LBU or
-                               i=LW    else '0';
+    uins_int.rw    <= '0' when PS=Sst            else  '1';
                   
-    uins_int.ce   <= '1' when i=LUI or
-                              i=LBU or
-                              i=LW or
-                              i=SB or
-                              i=SW     else '0';
+    uins_int.ce    <= '1' when PS=Sld or PS=Sst  else '0';
     
-    uins_int.bw    <= '0' when i=SB   else '1';
+    uins_int.bw    <= '0' when PS=Sst and i=SB   else '1';
       
-    uins_int.wpc   <= '1';
+    uins_int.wpc   <= '1' when PS=Swbk or PS=Sst or PS=Ssalta 
+	 		or (PS=Salu and ((i=MULTU and end_mul='1')
+			or (i=DIVU and end_div='1'))) else  '0';
+
+    uins_int.whilo   <= '1' when (PS=Salu and end_mul='1' and i=MULTU)
+			  or (PS=Salu and end_div='1' and i=DIVU) 
+			else  '0';
+
+    uins_int.rst_md   <= '1' when PS=Sreg and (i=MULTU or i=DIVU) else  '0';
 
 	 uins <= uins_int;
+    ---------------------------------------------------------------------------------------------
+    -- BLOCK (3/3) - Sequential part of the control unit - two processes implementing the
+    -- Control Unit state register and the (combinational) next-state function
+    --------------------------------------------------------------------------------------------- 
+    process(rst, ck)
+    begin
+       if rst='1' then
+            PS <= Sfetch;      
+				-- Sfetch is the state the machine stays while processor is being reset
+       elsif ck'event and ck='1' then
+				PS <= NS;
+       end if;
+    end process;
+     
+     
+    process(PS, i, end_mul, end_div)
+    begin
+       case PS is         
+            -- first stage:  read the instruction pointed to by the PC
+            --
+            when Sfetch=>NS <= Sreg;  
+     
+            -- second stage: read the register bank and produce immediate data,
+            -- if needed
+            when Sreg=>NS <= Salu;  
+             
+            -- third stage: alu operation 
+            --
+            when Salu =>if (i=LBU or i=LW) then 
+										NS <= Sld;  
+								elsif (i=SB or i=SW) then 
+										NS <= Sst;
+								elsif (i=J or i=JAL or i=JALR or i=JR or i=BEQ
+                               or i=BGEZ or i=BLEZ  or i=BNE) then 
+										NS <= Ssalta;
+								elsif ((i=MULTU and end_mul='0') or (i=DIVU and end_div='0')) then
+										NS <= Salu;
+								elsif ((i=MULTU and end_mul='1') or (i=DIVU and end_div='1')) then
+										NS <= Sfetch;
+								else 
+										NS <= Swbk; 
+								end if;
+                         
+            -- fourth stage: data memory operation  
+            --
+            when Sld=>  NS <= Swbk; 
+            
+            -- forth or fifth cycle: last for most instructions  - GO BACK TO FETCH
+            -- 
+            when Sst | Ssalta | Swbk=> 
+								NS <= Sfetch;
+  
+       end case;
+
+    end process;
     
 end control_unit;
 
@@ -599,24 +559,19 @@ entity MIPS_MCS is
 end MIPS_MCS;
 
 architecture MIPS_MCS of MIPS_MCS is
-      signal IR, NPC, RESULT: std_logic_vector(31 downto 0);
-      signal uins: microinstruction;  
-	  signal inst_branch, salta, end_mul, end_div: std_logic;
+     signal uins: microinstruction;  
  begin
 
      dp: entity work.datapath   
-         port map(ck=>clock, rst=>reset, d_address=>d_address, data=>data,
-		  inst_branch_out=>inst_branch, salta_out=>salta,
-		  end_mul=>end_mul, end_div=>end_div, RESULT_OUT=>RESULT,
-		  uins=>uins, IR_IN=>IR, NPC_IN=>NPC);
-
-     ct: entity work.control_unit port map( ck=>clock, rst=>reset, 
-		i_address=>i_address, instruction=>instruction,
-		inst_branch_in=>inst_branch, salta_in=>salta, RESULT_IN=>RESULT,
-		uins=>uins, IR_OUT=>IR, NPC_OUT=>NPC);
+         port map(ck=>clock,
+						rst=>reset,
+						d_address=>d_address,
+						data=>data,						
+						uinsMEM=>uinsMEM
+						);
          
-     ce <= uins.ce;
-     rw <= uins.rw; 
-     bw <= uins.bw;
+     ce <= uinsMEM.ce;
+     rw <= uinsMEM.rw; 
+     bw <= uinsMEM.bw;
      
 end MIPS_MCS;
