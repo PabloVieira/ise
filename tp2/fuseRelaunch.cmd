@@ -1,0 +1,1 @@
+-intstyle "ise" -incremental -o "C:/Users/Pablo/Documents/arqi/ise/tp2/CPU_tb_isim_beh.exe" -prj "C:/Users/Pablo/Documents/arqi/ise/tp2/CPU_tb_beh.prj" "work.CPU_tb" 
